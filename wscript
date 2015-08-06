@@ -49,6 +49,8 @@ def configure(conf):
     if not os.environ.has_key('PKG_CONFIG_PATH'):
         os.environ['PKG_CONFIG_PATH'] = ':'.join([
             '/usr/local/lib/pkgconfig',
+            '/usr/local/lib32/pkgconfig',
+            '/usr/local/lib64/pkgconfig',
             '/opt/local/lib/pkgconfig'])
 
     conf.check_cfg(package='libndn-cxx', args=['--cflags', '--libs'],
@@ -60,8 +62,8 @@ def configure(conf):
     conf.check_cfg(package='jsoncpp', args=['--cflags', '--libs'],
                    uselib_store='JSON', mandatory=True)
 
-    conf.check_cfg(package='libpq', args=['--cflags', '--libs'],
-                   uselib_store='SQL_PQ', mandatory=True)
+    conf.check_cfg(path='mysql_config', args=['--cflags', '--libs'], package='',
+                   uselib_store='MYSQL', mandatory=True)
 
     boost_libs = 'system random thread filesystem'
 
@@ -77,27 +79,38 @@ def configure(conf):
                     " (http://redmine.named-data.net/projects/nfd/wiki/Boost_FAQ)")
         return
 
-    conf.write_config_header('config.h')
+    conf.define('DEFAULT_CONFIG_FILE', '%s/ndn-atmos/catalog.conf' % conf.env['SYSCONFDIR'])
+
+    conf.write_config_header('config.hpp')
 
 def build (bld):
     ndn_atmos_objects = bld(
         target='ndn_atmos_objects',
         name='ndn_atmos_objects',
         features='cxx',
-        source=bld.path.ant_glob(['catalog/src/*.cpp'],
+        source=bld.path.ant_glob(['catalog/src/**/*.cpp'],
                                  excl=['catalog/src/main.cpp']),
-        use='NDN_CXX BOOST SYNC JSON SQL_PQ',
+        use='NDN_CXX BOOST JSON MYSQL SYNC',
         includes='catalog/src .',
         export_includes='catalog/src .'
     )
 
     bld(
-        target='bin/ndn-atmos',
+        target='bin/atmos-catalog',
         features='cxx cxxprogram',
         source='catalog/src/main.cpp',
         use='ndn_atmos_objects'
     )
 
+    bld.recurse('tools')
+
     # Catalog unit tests
     if bld.env['WITH_TESTS']:
         bld.recurse('catalog/tests')
+
+    bld(
+        features="subst",
+        source='catalog.conf.sample.in',
+        target='catalog.conf.sample',
+        install_path="${SYSCONFDIR}/ndn-atmos"
+    )
