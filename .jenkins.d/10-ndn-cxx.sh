@@ -26,6 +26,8 @@ pushd ndn-cxx >/dev/null
 ./waf configure -j1 --color=yes --without-osx-keychain
 ./waf -j1 --color=yes
 sudo ./waf install -j1 --color=yes
+(echo -e '/usr/local/lib\n/usr/local/lib64' | sudo tee /etc/ld.so.conf.d/ndn-cxx.conf) || true
+sudo ldconfig || true
 
 popd >/dev/null
 popd >/dev/null

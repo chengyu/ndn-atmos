@@ -102,8 +102,6 @@ def build (bld):
         use='ndn_atmos_objects'
     )
 
-    bld.recurse('tools')
-
     # Catalog unit tests
     if bld.env['WITH_TESTS']:
         bld.recurse('catalog/tests')
